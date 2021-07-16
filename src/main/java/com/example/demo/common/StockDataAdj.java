@@ -12,17 +12,18 @@ import java.util.Map;
  *
  * @author alizh
  */
-public class Entities {
-    String tablename;
+public class StockDataAdj{
+	String tablename;
     String ticker;
     Double closingPrice;
     Date tradingDate;
     Map<String, String> rows;
-	public Entities() {
+	public StockDataAdj() {
 		super();
 		// TODO Auto-generated constructor stub
 	}
-	public Entities(String tablename, String ticker, Double closingPrice, Date tradingDate, Map<String, String> rows) {
+	public StockDataAdj(String tablename, String ticker, Double closingPrice, Date tradingDate,
+			Map<String, String> rows) {
 		super();
 		this.tablename = tablename;
 		this.ticker = ticker;
@@ -60,5 +61,6 @@ public class Entities {
 	public void setRows(Map<String, String> rows) {
 		this.rows = rows;
 	}
+
     
 }

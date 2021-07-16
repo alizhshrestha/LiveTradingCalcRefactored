@@ -4,8 +4,6 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,9 +18,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import com.example.demo.common.Entities;
-import com.example.demo.model.StockDataAdjusted;
-import com.example.demo.repositories.StockDataAdjustedRepository;
+import com.example.demo.common.StockDataAdj;
+import com.example.demo.common.FloorsheetLive;
 
 @SpringBootApplication
 public class LiveTradingCalcApplication implements CommandLineRunner {
@@ -32,7 +29,8 @@ public class LiveTradingCalcApplication implements CommandLineRunner {
 
 //	List<StockDataAdjusted>
 
-	public static List<Entities> allDataMap = new ArrayList<Entities>();
+	public static List<StockDataAdj> allStockData = new ArrayList<StockDataAdj>();
+	public static List<FloorsheetLive> allFloorsheetData = new ArrayList<FloorsheetLive>();
 
 	public static void main(String[] args) {
 		SpringApplication.run(LiveTradingCalcApplication.class, args);
@@ -42,11 +40,82 @@ public class LiveTradingCalcApplication implements CommandLineRunner {
 	public void run(String... args) throws Exception {
 		// TODO Auto-generated method stub
 //		loadSystemXData();
-		showTables();
+		showStockDataAdjusted();
+		showLiveTradingTables();
 
 	}
+	
+    
+	public List<FloorsheetLive> showLiveTradingTables() throws Exception {
+		DatabaseMetaData metaData = dataSource.getConnection().getMetaData();
+		ResultSet tables = metaData.getTables("livetrading", null, null, new String[] { "TABLE" });
+		
+		FloorsheetLive floorsheet = new FloorsheetLive();
+		List<FloorsheetLive> floorsheetList = new ArrayList<FloorsheetLive>();
+		
+		String DB_URL = "jdbc:mysql://localhost:3306/livetrading";
+		String USER = "root";
+		String PASS = "@1uis9818A";
 
-	public List<Entities> showTables() throws Exception {
+		int count = 0;
+		int totalRecords = 0;
+		
+		Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
+		Statement stmt = conn.createStatement();
+
+		while (tables.next()) {
+			String tableName = tables.getString("TABLE_NAME");
+			ResultSet columns = metaData.getColumns("livetrading", null, tableName, "%");
+			Map<String, String> rowMap = new HashMap<String, String>();
+
+			List<String> columnsName = new ArrayList<String>();
+
+			String QUERY = "select * from " + tableName + " order by timestamp asc";
+
+			while (columns.next()) {
+				String column = columns.getString("COLUMN_NAME");
+				columnsName.add(column);
+			}
+			
+			if(tableName.equals("floorsheet_live")) {
+				floorsheet.setTablename(tableName);
+				try {
+					System.out.println("..................................."+tableName + ".................................");
+					ResultSet rs = stmt.executeQuery(QUERY);
+					while (rs.next()) {
+						floorsheet = new FloorsheetLive();
+						rowMap = new LinkedHashMap<String, String>();
+						floorsheet.setTablename(tableName);
+						for(String c : columnsName) {
+							if(c.equals("stockSymbol")) {
+								floorsheet.setStockSymbol(rs.getString("stockSymbol"));
+							}else if(c.equals("rate")) {
+								floorsheet.setRate(rs.getInt("rate"));
+							}else if(c.equals("timestamp")) {
+								floorsheet.setTimestamp(rs.getDate("timestamp"));
+							}else {
+								rowMap.put(c, rs.getString(c));
+								floorsheet.setRows(rowMap);
+							}
+						}	
+						allFloorsheetData.add(floorsheet);
+						count++;
+					}
+				} catch (Exception e) {
+					// TODO: handle exception
+					e.printStackTrace();
+				}
+				
+			}
+		}
+		
+		System.out.println("Total Records: " + totalRecords);
+		
+		return allFloorsheetData;
+	}
+	
+
+	public List<StockDataAdj> showStockDataAdjusted() throws Exception {
 		DatabaseMetaData metaData = dataSource.getConnection().getMetaData();
 		ResultSet tables = metaData.getTables("systemx", null, null, new String[] { "TABLE" });
 
@@ -72,8 +141,7 @@ public class LiveTradingCalcApplication implements CommandLineRunner {
 		while (tables.next()) {
 			String tableName = tables.getString("TABLE_NAME");
 			ResultSet columns = metaData.getColumns("systemx", null, tableName, "%");
-			Entities ec = new Entities();
-			List<Map<String, String>> mapList = new ArrayList<Map<String, String>>();
+			StockDataAdj ec = new StockDataAdj();
 			Map<String, String> rowMap = new HashMap<String, String>();
 
 			List<String> columnsName = new ArrayList<String>();
@@ -95,7 +163,7 @@ public class LiveTradingCalcApplication implements CommandLineRunner {
 					System.out.println(tableName + ".................................");
 					ResultSet rs = stmt.executeQuery(QUERY);
 					while (rs.next()) {
-						ec = new Entities();
+						ec = new StockDataAdj();
 						rowMap = new LinkedHashMap<String, String>();
 						ec.setTablename(tableName);
 						for(String c : columnsName) {
@@ -110,7 +178,7 @@ public class LiveTradingCalcApplication implements CommandLineRunner {
 								ec.setRows(rowMap);
 							}
 						}	
-						allDataMap.add(ec);
+						allStockData.add(ec);
 						count++;
 					}
 				} catch (Exception e) {
@@ -118,44 +186,11 @@ public class LiveTradingCalcApplication implements CommandLineRunner {
 					e.printStackTrace();
 				}
 			} 
-			
-//			if (tableName.equals("stocksymbolsforsearchbox")
-//					) {
-//						try {
-//							System.out.println(tableName + ".................................");
-//							ResultSet rs = stmt.executeQuery(QUERY);
-//							while (rs.next()) {
-//								ec = new Entities();
-//								rowMap = new LinkedHashMap<String, String>();
-//								ec.setTablename(tableName);
-//								for(String c : columnsName) {
-//									if(c.equals("ticker")) {
-//										ec.setTicker(rs.getString("ticker"));
-//									}else if(c.equals("closingPrice")) {
-//										ec.setClosingPrice(rs.getDouble("closingPrice"));
-//									}else if(c.equals("trading_date")) {
-//										ec.setTradingDate(rs.getDate("trading_date"));
-//									}else {
-//										rowMap.put(c, rs.getString(c));
-//										ec.setRows(rowMap);
-//									}
-//								}	
-//								allDataMap.add(ec);
-//								count++;
-//							}
-//						} catch (Exception e) {
-//							// TODO: handle exception
-//							e.printStackTrace();
-//						}
-//					} 
-//			
-			
-//			stocksymbolsforsearchbox
 		}
 
 		System.out.println("Total Records: " + count);
 
-		return allDataMap;
+		return allStockData;
 	}
 
 //	

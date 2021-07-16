@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.demo.common.Entities;
+import com.example.demo.common.StockDataAdj;
 import com.example.demo.model.StockDataAdjusted;
 import com.example.demo.model.Tearsheetderivedtable;
 import com.example.demo.services.StockDataAdjustedService;
@@ -28,11 +28,20 @@ public class MainController {
 		return stockDataAdjustedService.findall();
 	}
 	
-	@GetMapping("/findall")
-	public List<Entities> findall(){
-		return stockDataAdjustedService.findEntities();
+	@GetMapping("/stockDataAdjustedAllData")
+	public List<StockDataAdj> stockDataAdjustedAllData(){
+		return stockDataAdjustedService.getStockData();
 	}
 	
+	
+	@GetMapping("/calculatePercentile")
+	public List<Tearsheetderivedtable> calculatePercentile(){
+		return stockDataAdjustedService.calculateDaysHighLowPercentile();
+	}
+	
+//	calculatePercentile
+
+
 //	@GetMapping("/getAllTickers")
 //	public List<String> getTckLstString(){
 //		return stockDataAdjustedService.getTckLstString();
@@ -45,7 +54,7 @@ public class MainController {
 //	
 //	
 	@GetMapping("/stockDataAdjustedData")
-	public List<Entities> findstockDataAdjustedData(){
+	public List<StockDataAdj> findstockDataAdjustedData(){
 		return stockDataAdjustedService.stockDataAdjustedData();
 	}
 	
