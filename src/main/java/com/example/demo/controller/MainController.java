@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -34,38 +35,35 @@ public class MainController {
 	}
 	
 	
-	@GetMapping("/calculatePercentile")
-	public List<Tearsheetderivedtable> calculatePercentile(){
+	@GetMapping("/fillData")
+	public List<Tearsheetderivedtable> fillData() throws ParseException{
+		return stockDataAdjustedService.fillData();
+	}
+	
+	@GetMapping("/fullFill")
+	public List<Tearsheetderivedtable> fullFill() throws ParseException{
+		return stockDataAdjustedService.fullFill();
+	}
+	
+	@GetMapping("/calculateDaysHighLowPercentile")
+	public List<Tearsheetderivedtable> calculateDaysHighLowPercentile() throws ParseException{
 		return stockDataAdjustedService.calculateDaysHighLowPercentile();
 	}
 	
-//	calculatePercentile
-
-
-//	@GetMapping("/getAllTickers")
-//	public List<String> getTckLstString(){
-//		return stockDataAdjustedService.getTckLstString();
-//	}
 	
-//	@GetMapping("/cbkeystatsData")
-//	public List<Entities> findcbkeystatsData(){
-//		return stockDataAdjustedService.cbkeystatsData();
-//	}
-//	
-//	
-	@GetMapping("/stockDataAdjustedData")
-	public List<StockDataAdj> findstockDataAdjustedData(){
-		return stockDataAdjustedService.stockDataAdjustedData();
+	@GetMapping("/calculateProfitabilityChange")
+	public List<Tearsheetderivedtable> calculateProfitabilityChange() throws ParseException{
+		return stockDataAdjustedService.calculateProfitabilityChange();
 	}
 	
 	@GetMapping("/fiftyHighClosingPrice")
-	public List<Tearsheetderivedtable> fiftyHighClosingPrice(){
+	public List<Tearsheetderivedtable> fiftyHighClosingPrice() throws ParseException{
 		return stockDataAdjustedService.fiftyHighClosingPrice();
 	}
 	
 	
 	@GetMapping("/fiftyLowClosingPrice")
-	public List<Tearsheetderivedtable> fiftyLowClosingPrice(){
+	public List<Tearsheetderivedtable> fiftyLowClosingPrice() throws ParseException{
 		return stockDataAdjustedService.fiftyLowClosingPrice();
 	}
 	
