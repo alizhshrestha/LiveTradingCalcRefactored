@@ -12,6 +12,8 @@ import java.util.Map;
  *
  * @author alizh
  */
+
+//Generalised Class for all the data including tablename and its columns
 public class Entities {
     String tablename;
     List<Map<String, String>> rows;

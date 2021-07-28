@@ -14,8 +14,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -40,13 +38,14 @@ public class StockDataAdjustedService {
 
 	Tearsheetderivedtable tearsheet = new Tearsheetderivedtable();
 	List<Tearsheetderivedtable> starttearsheetList = new ArrayList<Tearsheetderivedtable>();
+	List<StockDataAdjusted> stockDataAdjustedList;
 
 	// minus 52 week to the current date
 	LocalDate todayDate = findPrevDay(LocalDate.now()); // Creating the LocalDatetime object
 //	LocalDate todayDate = LocalDate.now(); // Creating the LocalDatetime object
 	LocalDate last52weeks = todayDate.minus(52, ChronoUnit.WEEKS);
 
-	Map<String, Double> tickerClosingPriceMap = new HashMap<String, Double>();
+	Map<String, Double> tickerClosingPriceMap = new HashMap<String, Double>(); // maps each ticker closing price
 
 	// -------------------
 	// Filtered map list of latestpricelive table
@@ -102,6 +101,7 @@ public class StockDataAdjustedService {
 		return starttearsheetList;
 	}
 
+	
 	public List<StockDataAdj> getStockData() {
 		return LiveTradingCalcApplication.allStockData;
 	}
@@ -110,12 +110,14 @@ public class StockDataAdjustedService {
 		return LiveTradingCalcApplication.allFloorsheetData;
 	}
 
-	private List<StockDataAdjusted> stockDataAdjustedList;
-
 	public List<StockDataAdjusted> findall() {
 		return stockDataRepo.findAll();
 	}
 
+	
+	
+	// 1> 
+	// initial fill data
 	public List<Tearsheetderivedtable> fillData() {
 		List<Entities> allDataList = getData();
 		List<Tearsheetderivedtable> tearsheetlst = getTckLst();
@@ -137,9 +139,6 @@ public class StockDataAdjustedService {
 						} else if (volume.equals(0)) {
 							tear.setWeightedAvePrice(null);
 						} else {
-//							if(volume.isNaN()) {
-//								tear.setWeightedAvePrice(null);
-//							}else {
 							weightedAvePrice = amount / volume;
 							if(weightedAvePrice.isNaN()) {
 								tear.setWeightedAvePrice(null);
@@ -147,7 +146,6 @@ public class StockDataAdjustedService {
 								tear.setWeightedAvePrice(weightedAvePrice);
 							}
 //							}
-//							System.out.println("........... WEIGHTED AVERAGE PRICE: " + weightedAvePrice);
 							tear.setVolume(amount);
 							tear.setDaysHigh(daysHigh);
 							tear.setDaysLow(daysLow);
@@ -284,7 +282,10 @@ public class StockDataAdjustedService {
 
 	}
 
+	
+	// 2> 
 	// OneEightyDayAverage calculation
+	//needs initial fillData for fullFill()
 	public List<Tearsheetderivedtable> fullFill() throws ParseException {
 		List<Tearsheetderivedtable> tearsheetList = fillData();
 
@@ -344,7 +345,10 @@ public class StockDataAdjustedService {
 
 	}
 
+
+	// 3>
 	// 52weekHighLowPercentile and fiftyHigh calculation
+	//needs fullFill() for fiftyHighClosingPrice()
 	public List<Tearsheetderivedtable> fiftyHighClosingPrice() throws ParseException {
 		int count = 0;
 
@@ -407,7 +411,9 @@ public class StockDataAdjustedService {
 
 	}
 
+	// 4>
 	// DaysHighLowPercentile calculation
+	// needs fiftyHighClosingPrice() for calculateDaysHighLowPercentile()
 	public List<Tearsheetderivedtable> calculateDaysHighLowPercentile() throws ParseException {
 		List<FloorsheetLive> floorsheetliveData = getFloorsheetLiveData();
 		List<Tearsheetderivedtable> tearsheetList = fiftyHighClosingPrice();
@@ -444,7 +450,9 @@ public class StockDataAdjustedService {
 		return tearsheetList;
 	}
 
+	// 5>
 	// ProfitabilityChange and SentimentChange calculation
+	// needs calculateDaysHighLowPercentile() for calculateProfitabilityChange()
 	public List<Tearsheetderivedtable> calculateProfitabilityChange() throws ParseException {
 		List<Entities> allDataList = getData();
 		List<Tearsheetderivedtable> tearsheetList = fullFill();
@@ -528,38 +536,9 @@ public class StockDataAdjustedService {
 
 	}
 
-	// gets Sector
-	public String getSector(String sector) throws ParseException {
-		switch (sector) {
-		case "Commercial Banks":
-			return "cbkeystats";
-		case "Hydro Power":
-			return "hpkeystats";
-		case "Life Insurance":
-			return "lifekeystats";
-		case "Manufacturing And Processing":
-			return "mpkeystats";
-		case "Finance":
-			return "financekeystats";
-		case "Microcredit":
-			return "mfikeystats";
-		case "Organized Fund":
-			return "ofkeystats";
-		case "Non Life Insurance":
-			return "nonlifekeystats";
-		case "Development Bank":
-			return "dbkeystats";
-		case "Telecom":
-			return "telkeystats";
-		case "Hotels":
-			return "hotelkeystats";
-		default:
-			return null;
-		}
-
-	}
-
+	// 6>
 	// fiftyTwoWeeksData load
+	// needs calculateProfitabilityChange() for getFiftyTwoWeeksData()
 	public List<StockDataAdj> getFiftyTwoWeeksData() {
 		List<StockDataAdj> fiftyTwoWeeksData = new ArrayList<StockDataAdj>();
 
@@ -590,7 +569,9 @@ public class StockDataAdjustedService {
 
 	}
 
+	// 7>
 	// FiftyLow calculation
+	// needs getFiftyTwoWeeksData() for fiftyLowClosingPrice()
 	public List<Tearsheetderivedtable> fiftyLowClosingPrice() throws ParseException {
 		int count = 0;
 
@@ -615,6 +596,13 @@ public class StockDataAdjustedService {
 		return tearsheetList;
 
 	}
+	
+	
+	// 8>
+	// return full calculated Tearsheetderivedtable
+	public List<Tearsheetderivedtable> doTearsheet() throws ParseException {
+		return fiftyLowClosingPrice();
+	}
 
 	// save data to TearsheetDerivedTable
 	public String saveTearsheetDerivedTable() throws ParseException {
@@ -636,6 +624,39 @@ public class StockDataAdjustedService {
 		return "Saved Successfully";
 	}
 
+	
+	// Additional required functions
+	// gets Sector function of each ticker
+	public String getSector(String sector) throws ParseException {
+		switch (sector) {
+		case "Commercial Banks":
+			return "cbkeystats";
+		case "Hydro Power":
+			return "hpkeystats";
+		case "Life Insurance":
+			return "lifekeystats";
+		case "Manufacturing And Processing":
+			return "mpkeystats";
+		case "Finance":
+			return "financekeystats";
+		case "Microcredit":
+			return "mfikeystats";
+		case "Organized Fund":
+			return "ofkeystats";
+		case "Non Life Insurance":
+			return "nonlifekeystats";
+		case "Development Bank":
+			return "dbkeystats";
+		case "Telecom":
+			return "telkeystats";
+		case "Hotels":
+			return "hotelkeystats";
+		default:
+			return null;
+		}
+
+	}
+	
 	// for distinct data
 	public static <T> Predicate<T> distinctByKey(Function<? super T, Object> keyExtractor) {
 		Map<Object, Boolean> map = new ConcurrentHashMap<>();
@@ -688,6 +709,7 @@ public class StockDataAdjustedService {
 		return cal.getTime();
 	}
 
+	//get yesterday date and converts to string
 	public String getYesterdayDateString() {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
 		return dateFormat.format(today());
@@ -699,10 +721,14 @@ public class StockDataAdjustedService {
 		return TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS);
 	}
 
+	
+	//gets next day
 	public LocalDate findNextDay(LocalDate localdate) {
 		return localdate.plusDays(1);
 	}
 
+	
+	//gets previous day
 	public LocalDate findPrevDay(LocalDate localdate) {
 		return localdate.minusDays(1);
 	}

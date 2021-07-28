@@ -29,8 +29,6 @@ public class LiveTradingCalcApplication implements CommandLineRunner {
 	@Autowired
 	protected DataSource dataSource;
 
-//	List<StockDataAdjusted>
-
 	public static List<StockDataAdj> allStockData = new ArrayList<StockDataAdj>();
 	public static List<Latestprice> latestpriceData = new ArrayList<Latestprice>();
 	public static List<Entities> allDataMap = new ArrayList<Entities>();
@@ -41,17 +39,19 @@ public class LiveTradingCalcApplication implements CommandLineRunner {
 		SpringApplication.run(LiveTradingCalcApplication.class, args);
 	}
 
+	
+	//initially run and loads all data to List of Entities
 	@Override
 	public void run(String... args) throws Exception {
 		// TODO Auto-generated method stub
-//		loadSystemXData();
-		showStockDataAdjusted();
-		showLiveTradingTables();
-		showTables();
+		loadStockDataAdjustedData();
+		loadLiveTradingData();
+		loadSystemX();
 	}
 	
-    
-	public List<FloorsheetLive> showLiveTradingTables() throws Exception {
+	
+	// loads Livetrading data to list of Entities
+	public List<FloorsheetLive> loadLiveTradingData() throws Exception {
 		DatabaseMetaData metaData = dataSource.getConnection().getMetaData();
 		ResultSet tables = metaData.getTables("livetrading", null, null, new String[] { "TABLE" });
 		
@@ -120,7 +120,8 @@ public class LiveTradingCalcApplication implements CommandLineRunner {
 	}
 	
 
-	public List<StockDataAdj> showStockDataAdjusted() throws Exception {
+	// loads systemx data to list of Entities
+	public List<StockDataAdj> loadStockDataAdjustedData() throws Exception {
 		DatabaseMetaData metaData = dataSource.getConnection().getMetaData();
 		ResultSet tables = metaData.getTables("systemx", null, null, new String[] { "TABLE" });
 
@@ -245,7 +246,8 @@ public class LiveTradingCalcApplication implements CommandLineRunner {
 	}
 	
 	
-	public List<Entities> showTables() throws Exception {
+	//Loads systemx data to list of entities
+	public List<Entities> loadSystemX() throws Exception {
 		DatabaseMetaData metaData = dataSource.getConnection().getMetaData();
 		ResultSet tables = metaData.getTables("systemx", null, null, new String[] { "TABLE" });
 		

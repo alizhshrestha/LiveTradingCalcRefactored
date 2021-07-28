@@ -1,5 +1,7 @@
 package com.example.demo.common;
 
+
+//Class for closing price data
 public class ClosingPrice {
 
 	Double closingPrice;

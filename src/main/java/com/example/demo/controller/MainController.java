@@ -24,47 +24,10 @@ public class MainController {
 		return "Hello";
 	}
 	
-	@GetMapping("/find")
-	public List<StockDataAdjusted> find(){
-		return stockDataAdjustedService.findall();
-	}
-	
-	@GetMapping("/stockDataAdjustedAllData")
-	public List<StockDataAdj> stockDataAdjustedAllData(){
-		return stockDataAdjustedService.getStockData();
-	}
-	
-	
-	@GetMapping("/fillData")
-	public List<Tearsheetderivedtable> fillData() throws ParseException{
-		return stockDataAdjustedService.fillData();
-	}
-	
-	@GetMapping("/fullFill")
-	public List<Tearsheetderivedtable> fullFill() throws ParseException{
-		return stockDataAdjustedService.fullFill();
-	}
-	
-	@GetMapping("/calculateDaysHighLowPercentile")
-	public List<Tearsheetderivedtable> calculateDaysHighLowPercentile() throws ParseException{
-		return stockDataAdjustedService.calculateDaysHighLowPercentile();
-	}
-	
-	
-	@GetMapping("/calculateProfitabilityChange")
-	public List<Tearsheetderivedtable> calculateProfitabilityChange() throws ParseException{
-		return stockDataAdjustedService.calculateProfitabilityChange();
-	}
-	
-	@GetMapping("/fiftyHighClosingPrice")
-	public List<Tearsheetderivedtable> fiftyHighClosingPrice() throws ParseException{
-		return stockDataAdjustedService.fiftyHighClosingPrice();
-	}
-	
-	
-	@GetMapping("/fiftyLowClosingPrice")
-	public List<Tearsheetderivedtable> fiftyLowClosingPrice() throws ParseException{
-		return stockDataAdjustedService.fiftyLowClosingPrice();
+	//doTearsheet
+	@GetMapping("/doTearsheet")
+	public List<Tearsheetderivedtable> doTearsheet() throws ParseException{
+		return stockDataAdjustedService.doTearsheet();
 	}
 	
 	@GetMapping("/saveTearsheetDerivedTable")
