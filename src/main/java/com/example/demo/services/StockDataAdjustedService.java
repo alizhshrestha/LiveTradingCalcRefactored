@@ -43,6 +43,7 @@ public class StockDataAdjustedService {
 
 	// minus 52 week to the current date
 	LocalDate todayDate = findPrevDay(LocalDate.now()); // Creating the LocalDatetime object
+//	LocalDate todayDate = LocalDate.now(); // Creating the LocalDatetime object
 	LocalDate last52weeks = todayDate.minus(52, ChronoUnit.WEEKS);
 
 	Map<String, Double> tickerClosingPriceMap = new HashMap<String, Double>();
@@ -65,8 +66,7 @@ public class StockDataAdjustedService {
 		return LiveTradingCalcApplication.allDataMap;
 	}
 
-	
-	//gets tickerlist from stocksymbolsforsearchbox table
+	// gets tickerlist from stocksymbolsforsearchbox table
 	public List<String> getTckLstString() {
 		List<Entities> allDataList = getData();
 		List<String> tcklst = new ArrayList<String>();
@@ -85,8 +85,7 @@ public class StockDataAdjustedService {
 		return tcklst;
 	}
 
-	
-	//loads ticker initially in tearsheet
+	// loads ticker initially in tearsheet
 	public List<Tearsheetderivedtable> getTckLst() {
 		List<Entities> allDataList = getData();
 		List<String> tcklst = getTckLstString();
@@ -117,8 +116,6 @@ public class StockDataAdjustedService {
 		return stockDataRepo.findAll();
 	}
 
-	
-	
 	public List<Tearsheetderivedtable> fillData() {
 		List<Entities> allDataList = getData();
 		List<Tearsheetderivedtable> tearsheetlst = getTckLst();
@@ -134,14 +131,24 @@ public class StockDataAdjustedService {
 						Double volume = Double.valueOf(f.get("volume"));
 						Double daysHigh = Double.valueOf(f.get("high"));
 						Double daysLow = Double.valueOf(f.get("low"));
-
+						Double weightedAvePrice = 0.0;
 						if (amount.equals(null) || volume.equals(null)) {
 							tear.setWeightedAvePrice(null);
 						} else if (volume.equals(0)) {
 							tear.setWeightedAvePrice(null);
 						} else {
+//							if(volume.isNaN()) {
+//								tear.setWeightedAvePrice(null);
+//							}else {
+							weightedAvePrice = amount / volume;
+							if(weightedAvePrice.isNaN()) {
+								tear.setWeightedAvePrice(null);
+							}else {
+								tear.setWeightedAvePrice(weightedAvePrice);
+							}
+//							}
+//							System.out.println("........... WEIGHTED AVERAGE PRICE: " + weightedAvePrice);
 							tear.setVolume(amount);
-							tear.setWeightedAvePrice(amount / volume);
 							tear.setDaysHigh(daysHigh);
 							tear.setDaysLow(daysLow);
 							try {
@@ -276,8 +283,7 @@ public class StockDataAdjustedService {
 		return tearsheetlst;
 
 	}
-	
-	
+
 	// OneEightyDayAverage calculation
 	public List<Tearsheetderivedtable> fullFill() throws ParseException {
 		List<Tearsheetderivedtable> tearsheetList = fillData();
@@ -321,12 +327,13 @@ public class StockDataAdjustedService {
 
 				});
 
-				averageClosingPrice = clsprc.getTotalClosingPrice() / clsprc.getAverageCount();
-				if (averageClosingPrice.isNaN()) {
-					averageClosingPrice = 0.0;
+				if (clsprc.getAverageCount() != 0) {
+					averageClosingPrice = clsprc.getTotalClosingPrice() / clsprc.getAverageCount();
+					te.setOneEightyDayAverage(averageClosingPrice);
+				} else {
+					te.setOneEightyDayAverage(null);
 				}
 
-				te.setOneEightyDayAverage(averageClosingPrice);
 				clsprc.setTotalClosingPrice(0.0);
 				clsprc.setAverageCount(0);
 
@@ -341,32 +348,37 @@ public class StockDataAdjustedService {
 	public List<Tearsheetderivedtable> fiftyHighClosingPrice() throws ParseException {
 		int count = 0;
 
-		List<StockDataAdj> fiftyTwoWeeksData = getFiftyTwoWeeksData();
-		List<Entities> data = getData();
-		List<Tearsheetderivedtable> tearsheetList = calculateProfitabilityChange();
+		
+		List<StockDataAdj> fiftyTwoWeeksData = getFiftyTwoWeeksData(); //gets fifty two weeks data list and store it
+		List<Entities> data = getData(); //gets all data existing from database
+		List<Tearsheetderivedtable> tearsheetList = calculateProfitabilityChange(); // gets computed tearsheet list
 
 		List<Entities> stockdataEntitieslist = data.stream().filter(f -> f.getTablename().equals("stock_data_adjusted"))
-				.collect(Collectors.toList());
+				.collect(Collectors.toList()); // gets stock_data_adjusted data from data variable
 
 		stockdataEntitieslist.stream().forEach(e -> {
 			e.getRows().forEach(fe -> {
 				if (LocalDate.parse(String.valueOf(fe.get("trading_date"))).equals(todayDate)) {
-					tickerClosingPriceMap.put(fe.get("ticker"), Double.valueOf(fe.get("closingPrice")));
+					tickerClosingPriceMap.put(fe.get("ticker"), Double.valueOf(fe.get("closingPrice"))); //puts latest closing price of each ticker to tickerClosingPriceMap list
 				}
 			});
 		});
 
 		List<StockDataAdj> sortedDaysHighList = fiftyTwoWeeksData.stream()
-				.sorted(Comparator.comparingDouble(StockDataAdj::getClosingPrice).reversed())
+				.sorted(Comparator.comparingDouble(StockDataAdj::getClosingPrice).reversed()) //sorts fiftyTwoWeeksData according to closing price desc
+				.collect(Collectors.toList());
+		
+		List<StockDataAdj> sortedDaysLowList = fiftyTwoWeeksData.stream()
+				.sorted(Comparator.comparingDouble(StockDataAdj::getClosingPrice)) //sorts fiftyTwoWeeksData according to closing price asc
 				.collect(Collectors.toList());
 
 		List<StockDataAdj> distinctTickerMaxClosingPriceDaysHighList = sortedDaysHighList.stream()
-				.filter(distinctByKey(p -> p.getTicker())).collect(Collectors.toList());
+				.filter(distinctByKey(p -> p.getTicker())).collect(Collectors.toList()); //get max stock data adjusted data
 
 		distinctTickerMaxClosingPriceDaysHighList.stream().forEach(trst -> {
 			tearsheetList.stream().filter(f -> f.getTicker().equals(trst.getTicker())).forEach(f -> {
 				Double fiftyhightck = trst.getClosingPrice();
-				f.setFiftyHigh(fiftyhightck);
+				f.setFiftyHigh(fiftyhightck); //sets highest closing price of each ticker to tearsheetList
 			});
 
 		});
@@ -374,17 +386,17 @@ public class StockDataAdjustedService {
 		// For 52weekHighLowPercentile
 		tearsheetList.stream().forEach(k -> {
 			List<Double> closingList = new ArrayList<Double>();
-			List<StockDataAdj> stdadjList = sortedDaysHighList.stream().filter(t -> t.getTicker().equals(k.getTicker()))
-					.collect(Collectors.toList());
+			List<StockDataAdj> stdadjList = sortedDaysLowList.stream().filter(t -> t.getTicker().equals(k.getTicker()))
+					.collect(Collectors.toList()); // collects each ticker StockDataAdjusted list to stdadjList list
 
 			stdadjList.stream().forEach(cls -> {
-				Double cl = Double.valueOf(cls.getClosingPrice());
+				Double cl = Double.valueOf(cls.getClosingPrice()); // gets each ticker closing price list and add to closingList 
 				closingList.add(cl);
 			});
 
-			Double tckClsPrc = tickerClosingPriceMap.get(k.getTicker());
+			Double tckClsPrc = tickerClosingPriceMap.get(k.getTicker()); // gets highest closing price of that ticker
 			if (tckClsPrc != null) {
-				Double pct = getPercentileDataSet(closingList, tckClsPrc.doubleValue()).get(1);
+				Double pct = getPercentileDataSet(closingList, tckClsPrc.doubleValue()).get(1); //get 52weekHighLowPercentile and set to tearsheetList
 				k.setFiftyTwoHighLowPercentile(pct);
 			}
 
@@ -395,8 +407,7 @@ public class StockDataAdjustedService {
 
 	}
 
-	
-	//DaysHighLowPercentile calculation
+	// DaysHighLowPercentile calculation
 	public List<Tearsheetderivedtable> calculateDaysHighLowPercentile() throws ParseException {
 		List<FloorsheetLive> floorsheetliveData = getFloorsheetLiveData();
 		List<Tearsheetderivedtable> tearsheetList = fiftyHighClosingPrice();
@@ -405,7 +416,16 @@ public class StockDataAdjustedService {
 
 		tearsheetList.stream().forEach(f -> {
 			List<Double> rateList = new ArrayList<Double>();
-			List<FloorsheetLive> flrshtList = floorsheetliveData.stream()
+			
+//			List<StockDataAdj> sortedDaysLowList = fiftyTwoWeeksData.stream()
+//					.sorted(Comparator.comparingDouble(StockDataAdj::getClosingPrice)) //sorts fiftyTwoWeeksData according to closing price desc
+//					.collect(Collectors.toList());
+			
+			List<FloorsheetLive> sortedDaysHighLowPercentileList = floorsheetliveData.stream()
+					.sorted(Comparator.comparingDouble(FloorsheetLive::getRate)) //sorts floorsheetliveData according to rate asc
+					.collect(Collectors.toList());
+			
+			List<FloorsheetLive> flrshtList = sortedDaysHighLowPercentileList.stream()
 					.filter(t -> t.getStockSymbol().equals(f.getTicker())).collect(Collectors.toList());
 			flrshtList.stream().forEach(rate -> {
 				Double rt = Double.valueOf(rate.getRate());
@@ -424,7 +444,7 @@ public class StockDataAdjustedService {
 		return tearsheetList;
 	}
 
-	// ProfitabilityChange and SentimentChange calculation 
+	// ProfitabilityChange and SentimentChange calculation
 	public List<Tearsheetderivedtable> calculateProfitabilityChange() throws ParseException {
 		List<Entities> allDataList = getData();
 		List<Tearsheetderivedtable> tearsheetList = fullFill();
@@ -447,10 +467,13 @@ public class StockDataAdjustedService {
 									Double epsAnnualized = Double.valueOf(firstdata.get("EpsAnnualized"));
 									Double prevAnnualized = Double.valueOf(seconddata.get("EpsAnnualized"));
 
-									Double profitabilityChange = (epsAnnualized - prevAnnualized)
-											/ Math.abs(prevAnnualized.doubleValue());
-									t.setProfitabilityChange(profitabilityChange);
-
+									if (prevAnnualized != 0) {
+										Double profitabilityChange = (epsAnnualized - prevAnnualized)
+												/ Math.abs(prevAnnualized);
+										t.setProfitabilityChange(profitabilityChange);
+									} else {
+										t.setProfitabilityChange(null);
+									}
 								} else {
 									t.setProfitabilityChange(null);
 								}
@@ -480,11 +503,16 @@ public class StockDataAdjustedService {
 						if (fee.get("ticker").equals(t.getTicker())) {
 							if (fee.get("pe_D") != null) {
 								Double pe_D = Double.valueOf(fee.get("pe_D"));
-								Double reportedPeAnnualized = reportedPeAnnualizedMap.get(t.getTicker());
+								Double reportedPeAnnualized = 0.0, sentimentChange = 0.0;
+								reportedPeAnnualized = reportedPeAnnualizedMap.get(t.getTicker());
 
-								if (reportedPeAnnualized != null) {
-									Double sentimentChange = (pe_D - reportedPeAnnualized)
-											/ Math.abs(reportedPeAnnualized.doubleValue());
+								System.out.println("ReportedPeAnnualized: " + reportedPeAnnualized);
+
+								if (reportedPeAnnualized == null || reportedPeAnnualized.equals(0)) {
+//									reportedPeAnnualized = reportedPeAnnualizedMap.get(t.getTicker());
+									t.setSentimentChange(null);
+								} else {
+									sentimentChange = (pe_D - reportedPeAnnualized) / Math.abs(reportedPeAnnualized);
 									t.setSentimentChange(sentimentChange);
 								}
 
@@ -500,8 +528,7 @@ public class StockDataAdjustedService {
 
 	}
 
-	
-	//gets Sector
+	// gets Sector
 	public String getSector(String sector) throws ParseException {
 		switch (sector) {
 		case "Commercial Banks":
@@ -532,7 +559,6 @@ public class StockDataAdjustedService {
 
 	}
 
-	
 	// fiftyTwoWeeksData load
 	public List<StockDataAdj> getFiftyTwoWeeksData() {
 		List<StockDataAdj> fiftyTwoWeeksData = new ArrayList<StockDataAdj>();
@@ -610,18 +636,16 @@ public class StockDataAdjustedService {
 		return "Saved Successfully";
 	}
 
-	
 	// for distinct data
 	public static <T> Predicate<T> distinctByKey(Function<? super T, Object> keyExtractor) {
 		Map<Object, Boolean> map = new ConcurrentHashMap<>();
 		return t -> map.putIfAbsent(keyExtractor.apply(t), Boolean.TRUE) == null;
 	}
 
-	
 	// today date
 	public Date today() {
 		final Calendar cal = Calendar.getInstance();
-		cal.add(Calendar.DATE, -3);
+		cal.add(Calendar.DATE, -1);
 		return cal.getTime();
 	}
 
@@ -664,7 +688,6 @@ public class StockDataAdjustedService {
 		return cal.getTime();
 	}
 
-	
 	public String getYesterdayDateString() {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
 		return dateFormat.format(today());
@@ -681,7 +704,7 @@ public class StockDataAdjustedService {
 	}
 
 	public LocalDate findPrevDay(LocalDate localdate) {
-		return localdate.minusDays(3);
+		return localdate.minusDays(1);
 	}
 
 }

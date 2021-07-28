@@ -67,5 +67,11 @@ public class MainController {
 		return stockDataAdjustedService.fiftyLowClosingPrice();
 	}
 	
+	@GetMapping("/saveTearsheetDerivedTable")
+	public String saveTearsheetDerivedTable() throws ParseException{
+		return stockDataAdjustedService.saveTearsheetDerivedTable();
+	}
+	
+	
 	
 }
